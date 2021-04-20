@@ -48,8 +48,12 @@ void AutoDriver::setMaxSpeed(float stepsPerSecond)
   //  the dSPIN can understand. Fortunately, we have a function to do that.
   unsigned long integerSpeed = maxSpdCalc(stepsPerSecond);
   
-  // Now, we can set that paramter.
-  setParam(MAX_SPEED, integerSpeed);
+  setMaxSpeedRaw(integerSpeed);
+}
+void AutoDriver::setMaxSpeedRaw(unsigned long integerSpeed)
+{
+	// Now, we can set that paramter.
+	setParam(MAX_SPEED, integerSpeed);
 }
 
 // Get current speed
@@ -62,6 +66,10 @@ float AutoDriver::getMaxSpeed()
 {
   return maxSpdParse(getParam(MAX_SPEED));
 }
+unsigned long AutoDriver::getMaxSpeedRaw()
+{
+	return getParam(MAX_SPEED);
+}
 
 // Set the minimum speed allowable in the system. This is the speed a motion
 //  starts with; it will then ramp up to the designated speed or the max
@@ -71,7 +79,10 @@ void AutoDriver::setMinSpeed(float stepsPerSecond)
   // We need to convert the floating point stepsPerSecond into a value that
   //  the dSPIN can understand. Fortunately, we have a function to do that.
   unsigned long integerSpeed = minSpdCalc(stepsPerSecond);
-  
+  setMinSpeedRaw(integerSpeed);
+}
+void AutoDriver::setMinSpeedRaw(unsigned long integerSpeed)
+{
   // MIN_SPEED also contains the LSPD_OPT flag, so we need to protect that.
   unsigned long temp = getParam(MIN_SPEED) & 0x00001000;
   
@@ -83,12 +94,21 @@ float AutoDriver::getMinSpeed()
 {
   return minSpdParse(getParam(MIN_SPEED));
 }
+unsigned long AutoDriver::getMinSpeedRaw()
+{
+	return getParam(MIN_SPEED);
+}
+
 
 // Above this threshold, the dSPIN will cease microstepping and go to full-step
 //  mode. 
 void AutoDriver::setFullSpeed(float stepsPerSecond)
 {
   unsigned long integerSpeed = FSCalc(stepsPerSecond);
+  setFullSpeedRaw(integerSpeed);
+}
+void AutoDriver::setFullSpeedRaw(unsigned long integerSpeed)
+{
   setParam(FS_SPD, integerSpeed);
 }
 
@@ -96,31 +116,50 @@ float AutoDriver::getFullSpeed()
 {
   return FSParse(getParam(FS_SPD));
 }
-
+unsigned long AutoDriver::getFullSpeedRaw()
+{
+	return getParam(FS_SPD);
+}
 // Set the acceleration rate, in steps per second per second. This value is
 //  converted to a dSPIN friendly value. Any value larger than 29802 will
 //  disable acceleration, putting the chip in "infinite" acceleration mode.
 void AutoDriver::setAcc(float stepsPerSecondPerSecond)
 {
   unsigned long integerAcc = accCalc(stepsPerSecondPerSecond);
-  setParam(ACC, integerAcc);
+  setAccRaw(integerAcc);
+}
+void AutoDriver::setAccRaw(unsigned long integerAcc)
+{
+	setParam(ACC, integerAcc);
 }
 
 float AutoDriver::getAcc()
 {
   return accParse(getParam(ACC));
 }
+unsigned long AutoDriver::getAccRaw()
+{
+	return getParam(ACC);
+}
 
 // Same rules as setAcc().
 void AutoDriver::setDec(float stepsPerSecondPerSecond)
 {
   unsigned long integerDec = decCalc(stepsPerSecondPerSecond);
-  setParam(DECEL, integerDec);
+  setDecRaw(integerDec);
+}
+void AutoDriver::setDecRaw(unsigned long integerDec)
+{
+	setParam(DECEL, integerDec);
 }
 
 float AutoDriver::getDec()
 {
   return accParse(getParam(DECEL));
+}
+unsigned long AutoDriver::getDecRaw()
+{
+	return getParam(DECEL);
 }
 
 void AutoDriver::setOCThreshold(byte threshold)

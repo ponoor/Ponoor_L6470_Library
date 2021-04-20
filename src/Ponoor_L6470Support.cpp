@@ -276,7 +276,7 @@ long AutoDriver::paramHandler(byte param, unsigned long value)
     //  comprehensive set of constants for masking and testing this register is provided, but
     //  users should refer to the datasheet to ensure that they fully understand each one of
     //  the bits in the register.
-    case STATUS:  // STATUS is a read-only register
+    case REG_STATUS:  // STATUS is a read-only register
       retVal = xferParam(0, 16);;
       break;
     default:
@@ -297,14 +297,18 @@ long AutoDriver::xferParam(unsigned long value, byte bitLen)
   byte temp;
 
   unsigned long retVal = 0; 
-
+#if defined(ARDUINO_ARCH_SAMD)
+  __disable_irq();
+#endif
   for (int i = 0; i < byteLen; i++)
   {
     retVal = retVal << 8;
     temp = SPIXfer((byte)(value>>((byteLen-i-1)*8)));
     retVal |= temp;
   }
-
+#if defined(ARDUINO_ARCH_SAMD)
+  __enable_irq();
+#endif
   unsigned long mask = 0xffffffff >> (32-bitLen);
   return retVal & mask;
 }
