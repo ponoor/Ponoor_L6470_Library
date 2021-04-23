@@ -239,9 +239,15 @@ void AutoDriver::hardHiZ()
 int AutoDriver::getStatus()
 {
   int temp = 0;
+#if defined(ARDUINO_ARCH_SAMD)
+  __disable_irq();
+#endif
   byte* bytePointer = (byte*)&temp;
   SPIXfer(CMD_GET_STATUS);
   bytePointer[1] = SPIXfer(0);
   bytePointer[0] = SPIXfer(0);
+#if defined(ARDUINO_ARCH_SAMD)
+  __enable_irq();
+#endif
   return temp;
 }
