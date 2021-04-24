@@ -55,8 +55,11 @@ long AutoDriver::getMark()
 //  appropriate integer values for this function.
 void AutoDriver::run(byte dir, float stepsPerSec)
 {
-  SPIXfer(CMD_RUN | dir);
   unsigned long integerSpeed = spdCalc(stepsPerSec);
+  runRaw(dir, integerSpeed);
+}
+void AutoDriver::runRaw(byte dir, unsigned long integerSpeed) {
+  SPIXfer(CMD_RUN | dir);
   if (integerSpeed > 0xFFFFF) integerSpeed = 0xFFFFF;
   
   // Now we need to push this value out to the dSPIN. The 32-bit value is
@@ -137,9 +140,12 @@ void AutoDriver::goToDir(byte dir, long pos)
 //  either RESET to 0 or COPY-ed into the MARK register.
 void AutoDriver::goUntil(byte action, byte dir, float stepsPerSec)
 {
+  unsigned long integerSpeed = spdCalc(stepsPerSec);
+  goUntilRaw(action, dir, integerSpeed);
+}
+void AutoDriver::goUntilRaw(byte action, byte dir, unsigned long integerSpeed) {
   action = (action > 0) << 3;
   SPIXfer(CMD_GO_UNTIL | action | dir);
-  unsigned long integerSpeed = spdCalc(stepsPerSec);
   if (integerSpeed > 0x3FFFFF) integerSpeed = 0x3FFFFF;
   // See run() for an explanation of what's going on here.
   byte* bytePointer = (byte*)&integerSpeed;
@@ -148,7 +154,6 @@ void AutoDriver::goUntil(byte action, byte dir, float stepsPerSec)
     SPIXfer(bytePointer[i]);
   }
 }
-
 // Similar in nature to GoUntil, ReleaseSW produces motion at the
 //  higher of two speeds: the value in MIN_SPEED or 5 steps/s.
 //  The motor continues to run at this speed until a rising edge
@@ -234,9 +239,15 @@ void AutoDriver::hardHiZ()
 int AutoDriver::getStatus()
 {
   int temp = 0;
+#if defined(ARDUINO_ARCH_SAMD)
+  __disable_irq();
+#endif
   byte* bytePointer = (byte*)&temp;
   SPIXfer(CMD_GET_STATUS);
   bytePointer[1] = SPIXfer(0);
   bytePointer[0] = SPIXfer(0);
+#if defined(ARDUINO_ARCH_SAMD)
+  __enable_irq();
+#endif
   return temp;
 }

@@ -38,6 +38,11 @@ class AutoDriver
     void setFullSpeed(float stepsPerSecond);
     void setAcc(float stepsPerSecondPerSecond);
     void setDec(float stepsPerSecondPerSecond);
+    void setMaxSpeedRaw(unsigned long integerSpeed);
+	  void setMinSpeedRaw(unsigned long integerSpeed);
+	  void setFullSpeedRaw(unsigned long integerSpeed);
+	  void setAccRaw(unsigned long integerSpeed);
+	  void setDecRaw(unsigned long integerSpeed);
     void setOCThreshold(byte threshold);
     void setPWMFreq(int divisor, int multiplier);
     void setSlewRate(int slewRate);
@@ -59,6 +64,11 @@ class AutoDriver
     float getFullSpeed();
     float getAcc();
     float getDec();
+    unsigned long getMaxSpeedRaw();
+    unsigned long getMinSpeedRaw();
+    unsigned long getFullSpeedRaw();
+    unsigned long getAccRaw();
+    unsigned long getDecRaw();
     byte getOCThreshold();
     int getPWMFreqDivisor();
     int getPWMFreqMultiplier();
@@ -76,11 +86,13 @@ class AutoDriver
     long getPos();
     long getMark();
     void run(byte dir, float stepsPerSec);
+    void runRaw(byte dir, unsigned long integerSpeed);
     void stepClock(byte dir);
     void move(byte dir, unsigned long numSteps);
     void goTo(long pos);
     void goToDir(byte dir, long pos);
     void goUntil(byte action, byte dir, float stepsPerSec);
+    void goUntilRaw(byte action, byte dir, unsigned long integerSpeed);
     void releaseSw(byte action, byte dir);
     void goHome();
     void goMark();

@@ -184,7 +184,7 @@
 #define STEP_MODE            0x16
 #define ALARM_EN             0x17
 #define CONFIG               0x18
-#define STATUS               0x19
+#define REG_STATUS           0x19
 
 //dSPIN commands
 #define CMD_NOP                  0x00
