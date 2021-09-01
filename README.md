@@ -16,6 +16,7 @@ Differences from the original library
 - Added `getSpeed()` function
 - Disable interrupts during `getStatus` and `xferParam` to avoid return value collapse for ATSAMD
 - Changed some constants name(`CMD_GET_STATUS`, `REG_STATUS`) to avoid conflicts with other libraries.
+- Added functions related with `EL_POS`
 
 License Information
 -------------------
