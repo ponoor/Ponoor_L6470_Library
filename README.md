@@ -1,5 +1,7 @@
 Ponoor L6470 Library
 ==========
+[![Compile Examples](https://github.com/ponoor/Ponoor_L6470_Library/workflows/Compile%20Examples/badge.svg)](https://github.com/ponoor/Ponoor_L6470_Library/actions?workflow=Compile+Examples)
+
 Arduino library support for STMicroelectronics [L6470](https://www.st.com/en/motor-drivers/l6470.html) chip.
 
 This library is a modification of the L6470-based SparkFun [AutoDriver library](https://github.com/sparkfun/SparkFun_AutoDriver_Arduino_Library).
