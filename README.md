@@ -70,9 +70,10 @@ Differences from the original library
 Examples
 --------
 * **AutoDriverLibraryTest** - Plays music with stepper motors on a chain of boards.
-* **L6470_dSPIN_Example** - Basic example using the L6470 directly, without the AutoDriver class.
+* **L6470_dSPIN_Example** - Basic example using the L6470 directly, without the AutoDriver class (AVR only: uses Timer1 registers).
 * **ParameterGetSetTest** - Checks that values read back after being set are consistent.
 * **gantry** - Controls a five-axis gantry on one daisy chain.
+* **PackedBasics** - Minimal packed-transfer example: read positions/status and send a different command to each board, controlled from the Serial Monitor.
 * **PackedCommands** - Compares the regular and the packed API on an 8-chip chain and runs a simple P-control servo loop.
 
 Running the tests

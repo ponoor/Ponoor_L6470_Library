@@ -18,7 +18,7 @@
 ### Added
 - Packed daisy-chain transfers: `prepareGetParam()`, `prepareSetParam()`, `prepareGetStatus()`, `prepareGetPos()`, `prepareRun()`, `prepareRunRaw()`, `prepareMove()`, `prepareGoTo()`, `prepareGoToDir()`, `prepareSoftStop()`, `prepareHardStop()`, `prepareSoftHiZ()`, `prepareHardHiZ()`, `prepareNop()`, `AutoDriver::performPrepared()`, `preparedResult()`, `preparedPos()`, `preparedStatus()`. `L6470_MAX_DEVICES` sets the maximum chain length (default 16).
 - `AutoDriver::setSPIClock()` (default 4 MHz, clamped to 5 MHz).
-- `PackedCommands` example.
+- `PackedBasics` and `PackedCommands` examples.
 - `keywords.txt` covers the raw accessors, `getSpeed()`, EL_POS functions, packed transfer methods and `CMD_*` constants.
 - Host-side tests in `test/`.
 - `CHANGELOG.md`.
