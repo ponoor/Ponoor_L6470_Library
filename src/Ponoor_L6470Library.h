@@ -1,5 +1,5 @@
-#ifndef AutoDriver_h
-#define AutoDriver_h
+#ifndef PONOOR_L6470_LIBRARY_H
+#define PONOOR_L6470_LIBRARY_H
 
 #include "Arduino.h"
 #include <SPI.h>
@@ -39,10 +39,10 @@ class AutoDriver
     void setAcc(float stepsPerSecondPerSecond);
     void setDec(float stepsPerSecondPerSecond);
     void setMaxSpeedRaw(unsigned long integerSpeed);
-	  void setMinSpeedRaw(unsigned long integerSpeed);
-	  void setFullSpeedRaw(unsigned long integerSpeed);
-	  void setAccRaw(unsigned long integerSpeed);
-	  void setDecRaw(unsigned long integerSpeed);
+    void setMinSpeedRaw(unsigned long integerSpeed);
+    void setFullSpeedRaw(unsigned long integerSpeed);
+    void setAccRaw(unsigned long integerSpeed);
+    void setDecRaw(unsigned long integerSpeed);
     void setOCThreshold(byte threshold);
     void setPWMFreq(int divisor, int multiplier);
     void setSlewRate(int slewRate);

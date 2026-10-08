@@ -1,5 +1,5 @@
-#ifndef _dspin_constants_h_
-#define _dspin_constants_h_
+#ifndef PONOOR_L6470_CONSTANTS_H
+#define PONOOR_L6470_CONSTANTS_H
 
 // Constant definitions provided by ST
 
@@ -37,7 +37,7 @@
 // ...next, define the SYNC_EN bit. When set, the BUSYN pin will instead
 //  output a clock related to the full-step frequency as defined by the
 //  SYNC_SEL bits below.
-#define STEP_MODE_SYNC_EN	 0x80  // Mask for this bit
+#define STEP_MODE_SYNC_EN   0x80  // Mask for this bit
 #define SYNC_EN 0x80
 
 // ...last, define the SYNC_SEL modes. The clock output is defined by
@@ -59,7 +59,7 @@
 //  the FLAG pin will go low. The register must be queried to determine which event
 //  caused the alarm.
 #define ALARM_EN_OVERCURRENT       0x01
-#define ALARM_EN_THERMAL_SHUTDOWN	 0x02
+#define ALARM_EN_THERMAL_SHUTDOWN   0x02
 #define ALARM_EN_THERMAL_WARNING   0x04
 #define ALARM_EN_UNDER_VOLTAGE     0x08
 #define ALARM_EN_STALL_DET_A       0x10
