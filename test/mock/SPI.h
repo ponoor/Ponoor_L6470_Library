@@ -15,6 +15,8 @@ class SPIClass {
 public:
   void beginTransaction(SPISettings s) { lastClock = s.clock; }
   void endTransaction() {}
+  void begin() {}
+  void setDataMode(int) {}
   void transfer(void *buf, size_t n) { if (hook) hook((uint8_t *)buf, n); }
   std::function<void(uint8_t *, size_t)> hook;
   uint32_t lastClock = 0;

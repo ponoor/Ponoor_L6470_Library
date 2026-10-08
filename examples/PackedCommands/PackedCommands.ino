@@ -28,28 +28,20 @@
 
 // P control parameters: speed [steps/s] = KP * position error [steps].
 #define KP         2.0f
-#define MAX_SPEED  1000.0f
+#define SERVO_MAX_SPEED  1000.0f
 #define TARGET_POS 20000L
 
 // Numbering starts from the board farthest from the controller and counts
-//  up from 0.
-AutoDriver boards[NUM_BOARDS] = {
-  AutoDriver(0, CS_PIN, RESET_PIN),
-  AutoDriver(1, CS_PIN, RESET_PIN),
-  AutoDriver(2, CS_PIN, RESET_PIN),
-  AutoDriver(3, CS_PIN, RESET_PIN),
-  AutoDriver(4, CS_PIN, RESET_PIN),
-  AutoDriver(5, CS_PIN, RESET_PIN),
-  AutoDriver(6, CS_PIN, RESET_PIN),
-  AutoDriver(7, CS_PIN, RESET_PIN)
-};
+//  up from 0. The objects are created in setup() so that the number of
+//  boards is set by NUM_BOARDS alone.
+AutoDriver *boards[NUM_BOARDS];
 
 // Converts a position error into a signed speed command.
 static void pControl(long position, long target, byte *dir, float *speed)
 {
   float v = KP * (float)(target - position);
-  if (v > MAX_SPEED) v = MAX_SPEED;
-  if (v < -MAX_SPEED) v = -MAX_SPEED;
+  if (v > SERVO_MAX_SPEED) v = SERVO_MAX_SPEED;
+  if (v < -SERVO_MAX_SPEED) v = -SERVO_MAX_SPEED;
   *dir = (v >= 0) ? FWD : REV;
   *speed = fabs(v);
 }
@@ -62,8 +54,8 @@ void servoImmediate()
   {
     byte dir;
     float speed;
-    pControl(boards[i].getPos(), TARGET_POS, &dir, &speed);
-    boards[i].run(dir, speed);
+    pControl(boards[i]->getPos(), TARGET_POS, &dir, &speed);
+    boards[i]->run(dir, speed);
   }
 }
 
@@ -71,15 +63,15 @@ void servoImmediate()
 //  one transfer to update all speeds.
 void servoPacked()
 {
-  for (int i = 0; i < NUM_BOARDS; i++) boards[i].prepareGetPos();
+  for (int i = 0; i < NUM_BOARDS; i++) boards[i]->prepareGetPos();
   AutoDriver::performPrepared();
 
   for (int i = 0; i < NUM_BOARDS; i++)
   {
     byte dir;
     float speed;
-    pControl(boards[i].preparedPos(), TARGET_POS, &dir, &speed);
-    boards[i].prepareRun(dir, speed);
+    pControl(boards[i]->preparedPos(), TARGET_POS, &dir, &speed);
+    boards[i]->prepareRun(dir, speed);
   }
   AutoDriver::performPrepared();
 }
@@ -100,18 +92,25 @@ void setup()
   SPI.begin();
   SPI.setDataMode(SPI_MODE3);
 
+  // Create every object before the first transfer: the library needs to know
+  //  the length of the whole chain.
   for (int i = 0; i < NUM_BOARDS; i++)
   {
-    boards[i].SPIPortConnect(&SPI);
-    boards[i].setOCThreshold(OCD_TH_6000mA);
-    boards[i].setRunKVAL(64);
-    boards[i].setAccKVAL(64);
-    boards[i].setDecKVAL(64);
-    boards[i].setHoldKVAL(16);
-    boards[i].setMaxSpeed(MAX_SPEED);
-    boards[i].setAcc(2000);
-    boards[i].setDec(2000);
-    boards[i].setPos(0);
+    boards[i] = new AutoDriver(i, CS_PIN, RESET_PIN);
+  }
+
+  for (int i = 0; i < NUM_BOARDS; i++)
+  {
+    boards[i]->SPIPortConnect(&SPI);
+    boards[i]->setOCThreshold(OCD_TH_6000mA);
+    boards[i]->setRunKVAL(64);
+    boards[i]->setAccKVAL(64);
+    boards[i]->setDecKVAL(64);
+    boards[i]->setHoldKVAL(16);
+    boards[i]->setMaxSpeed(SERVO_MAX_SPEED);
+    boards[i]->setAcc(2000);
+    boards[i]->setDec(2000);
+    boards[i]->setPos(0);
   }
 
   // Measure one servo cycle with each API.
