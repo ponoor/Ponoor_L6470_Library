@@ -8,16 +8,21 @@
 void AutoDriver::setParam(byte param, unsigned long value) 
 {
   param |= CMD_SET_PARAM;
+  uint32_t primask = _irqSave();
   SPIXfer((byte)param);
   paramHandler(param, value);
+  _irqRestore(primask);
 }
 
 // Realize the "get parameter" function, to read from the various registers in
 //  the dSPIN chip.
 long AutoDriver::getParam(byte param)
 {
+  uint32_t primask = _irqSave();
   SPIXfer(param | CMD_GET_PARAM);
-  return paramHandler(param, 0);
+  long retVal = paramHandler(param, 0);
+  _irqRestore(primask);
+  return retVal;
 }
 
 // Returns the content of the ABS_POS register, which is a signed 22-bit number
@@ -67,8 +72,9 @@ void AutoDriver::run(byte dir, float stepsPerSec)
   runRaw(dir, integerSpeed);
 }
 void AutoDriver::runRaw(byte dir, unsigned long integerSpeed) {
-  SPIXfer(CMD_RUN | dir);
   if (integerSpeed > 0xFFFFF) integerSpeed = 0xFFFFF;
+  uint32_t primask = _irqSave();
+  SPIXfer(CMD_RUN | dir);
   
   // Now we need to push this value out to the dSPIN. The 32-bit value is
   //  stored in memory in little-endian format, but the dSPIN expects a
@@ -84,6 +90,7 @@ void AutoDriver::runRaw(byte dir, unsigned long integerSpeed) {
   {
     SPIXfer(bytePointer[i]);
   }
+  _irqRestore(primask);
 }
 
 // STEP_CLOCK puts the device in external step clocking mode. When active,
@@ -102,14 +109,16 @@ void AutoDriver::stepClock(byte dir)
 //  will run at MAX_SPEED. Stepping mode will adhere to FS_SPD value, as well.
 void AutoDriver::move(byte dir, unsigned long numSteps)
 {
-  SPIXfer(CMD_MOVE | dir);
   if (numSteps > 0x3FFFFF) numSteps = 0x3FFFFF;
+  uint32_t primask = _irqSave();
+  SPIXfer(CMD_MOVE | dir);
   // See run() for an explanation of what's going on here.
   byte* bytePointer = (byte*)&numSteps;
   for (int8_t i = 2; i >= 0; i--)
   {
     SPIXfer(bytePointer[i]);
   }
+  _irqRestore(primask);
 }
 
 // GOTO operates much like MOVE, except it produces absolute motion instead
@@ -117,27 +126,31 @@ void AutoDriver::move(byte dir, unsigned long numSteps)
 //  in the shortest possible fashion.
 void AutoDriver::goTo(long pos)
 {
-  SPIXfer(CMD_GOTO);
   if (pos > 0x3FFFFF) pos = 0x3FFFFF;
+  uint32_t primask = _irqSave();
+  SPIXfer(CMD_GOTO);
   // See run() for an explanation of what's going on here.
   byte* bytePointer = (byte*)&pos;
   for (int8_t i = 2; i >= 0; i--)
   {
     SPIXfer(bytePointer[i]);
   }
+  _irqRestore(primask);
 }
 
 // Same as GOTO, but with user constrained rotational direction.
 void AutoDriver::goToDir(byte dir, long pos)
 {
-  SPIXfer(CMD_GOTO_DIR | dir);
   if (pos > 0x3FFFFF) pos = 0x3FFFFF;
+  uint32_t primask = _irqSave();
+  SPIXfer(CMD_GOTO_DIR | dir);
   // See run() for an explanation of what's going on here.
   byte* bytePointer = (byte*)&pos;
   for (int8_t i = 2; i >= 0; i--)
   {
     SPIXfer(bytePointer[i]);
   }
+  _irqRestore(primask);
 }
 
 // GoUntil will set the motor running with direction dir (REV or
@@ -153,14 +166,16 @@ void AutoDriver::goUntil(byte action, byte dir, float stepsPerSec)
 }
 void AutoDriver::goUntilRaw(byte action, byte dir, unsigned long integerSpeed) {
   action = (action > 0) << 3;
-  SPIXfer(CMD_GO_UNTIL | action | dir);
   if (integerSpeed > 0x3FFFFF) integerSpeed = 0x3FFFFF;
+  uint32_t primask = _irqSave();
+  SPIXfer(CMD_GO_UNTIL | action | dir);
   // See run() for an explanation of what's going on here.
   byte* bytePointer = (byte*)&integerSpeed;
   for (int8_t i = 2; i >= 0; i--)
   {
     SPIXfer(bytePointer[i]);
   }
+  _irqRestore(primask);
 }
 // Similar in nature to GoUntil, ReleaseSW produces motion at the
 //  higher of two speeds: the value in MIN_SPEED or 5 steps/s.
@@ -253,15 +268,11 @@ void AutoDriver::hardHiZ()
 int AutoDriver::getStatus()
 {
   int temp = 0;
-#if defined(ARDUINO_ARCH_SAMD)
-  __disable_irq();
-#endif
+  uint32_t primask = _irqSave();
   byte* bytePointer = (byte*)&temp;
   SPIXfer(CMD_GET_STATUS);
   bytePointer[1] = SPIXfer(0);
   bytePointer[0] = SPIXfer(0);
-#if defined(ARDUINO_ARCH_SAMD)
-  __enable_irq();
-#endif
+  _irqRestore(primask);
   return temp;
 }

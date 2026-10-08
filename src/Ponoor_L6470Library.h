@@ -109,6 +109,13 @@ class AutoDriver
     
     
   private:
+    // Interrupt protection for multi-byte SPI transactions (SAMD only; no-ops
+    //  on other architectures). _irqSave() returns the previous PRIMASK and
+    //  disables interrupts; _irqRestore() re-enables them only if they were
+    //  enabled before, so calls can be nested safely.
+    static uint32_t _irqSave();
+    static void _irqRestore(uint32_t primask);
+
     byte SPIXfer(byte data);
     long xferParam(unsigned long value, byte bitLen);
     long paramHandler(byte param, unsigned long value);

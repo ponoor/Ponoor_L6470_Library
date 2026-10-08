@@ -3,6 +3,26 @@
 
 int AutoDriver::_numBoards;
 
+uint32_t AutoDriver::_irqSave()
+{
+#if defined(ARDUINO_ARCH_SAMD)
+  uint32_t primask = __get_PRIMASK();
+  __disable_irq();
+  return primask;
+#else
+  return 0;
+#endif
+}
+
+void AutoDriver::_irqRestore(uint32_t primask)
+{
+#if defined(ARDUINO_ARCH_SAMD)
+  if (!primask) __enable_irq();
+#else
+  (void)primask;
+#endif
+}
+
 // Constructors
 AutoDriver::AutoDriver(int position, int CSPin, int resetPin, int busyPin)
 {
