@@ -13,6 +13,8 @@
 - Include guards are unique (`PONOOR_L6470_CONSTANTS_H`, `PONOOR_L6470_LIBRARY_H`); the old constants guard clashed with Ponoor_PowerSTEP01_Library.
 - `getPos()` / `getMark()` sign extension no longer depends on the size of `long`.
 
+- `goUntilRaw()` clamps the speed to 20 bits (0xFFFFF) like `runRaw()`. Previously values from 0x100000 to 0x3FFFFF were sent as is, and the chip ignored the upper bits, so a too-large speed could end up as MIN_SPEED.
+
 ### Added
 - Packed daisy-chain transfers: `prepareGetParam()`, `prepareSetParam()`, `prepareGetStatus()`, `prepareGetPos()`, `prepareRun()`, `prepareRunRaw()`, `prepareMove()`, `prepareGoTo()`, `prepareGoToDir()`, `prepareSoftStop()`, `prepareHardStop()`, `prepareSoftHiZ()`, `prepareHardHiZ()`, `prepareNop()`, `AutoDriver::performPrepared()`, `preparedResult()`, `preparedPos()`, `preparedStatus()`. `L6470_MAX_DEVICES` sets the maximum chain length (default 16).
 - `AutoDriver::setSPIClock()` (default 4 MHz, clamped to 5 MHz).

@@ -189,7 +189,7 @@ void AutoDriver::goUntil(byte action, byte dir, float stepsPerSec)
 }
 void AutoDriver::goUntilRaw(byte action, byte dir, unsigned long integerSpeed) {
   action = (action > 0) << 3;
-  if (integerSpeed > 0x3FFFFF) integerSpeed = 0x3FFFFF;
+  if (integerSpeed > 0xFFFFF) integerSpeed = 0xFFFFF;  // SPD is 20-bit; the upper 4 bits of byte 2 are don't care
   byte tx[4];
   byte len = buildData(CMD_GO_UNTIL | action | dir, integerSpeed, 3, tx);
   sendBytes(tx, len);
