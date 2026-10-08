@@ -5,35 +5,41 @@
 //  units (eg, steps/s) to values usable by the dsPIN controller. These are all
 //  private members of class AutoDriver.
 
-// The value in the ACC register is [(steps/s/s)*(tick^2)]/(2^-40) where tick is 
+// The value in the ACC register is [(steps/s/s)*(tick^2)]/(2^-40) where tick is
 //  250ns (datasheet value)- 0x08A on boot.
-// Multiply desired steps/s/s by .137438 to get an appropriate value for this register.
-// This is a 12-bit value, so we need to make sure the value is at or below 0xFFF.
+// Multiply desired steps/s/s by 0.068719477 to get an appropriate value for this register.
+// This is a 12-bit value, but 0xFFF is reserved (datasheet 9.1.5), so the valid
+//  range is 0x001 to 0xFFE (14.55 to 59590 steps/s/s). Out-of-range inputs are clamped.
 unsigned long AutoDriver::accCalc(float stepsPerSecPerSec)
 {
-  float temp = stepsPerSecPerSec * 0.06871948F;
-  if( (unsigned long) long(temp) >= 0x00000FFF) return 0x00000FFE;
-  else return (unsigned long) long(temp);
+  float temp = stepsPerSecPerSec * 0.068719477F;
+  if (temp >= 4094.5F) return 0x00000FFE;
+  // Round to nearest so that accCalc(accParse(n)) == n.
+  unsigned long value = (temp > 0.0F) ? (unsigned long) (temp + 0.5F) : 0;
+  if (value < 1) return 1;
+  return value;
 }
 
-
+// One LSB of ACC is 2^-40 / tick^2 = 14.551915 steps/s/s.
 float AutoDriver::accParse(unsigned long stepsPerSecPerSec)
 {
-    return (float)(stepsPerSecPerSec & 0x00000FFF) * 15.258789F;
+  return (float)(stepsPerSecPerSec & 0x00000FFF) * 14.551915F;
 }
 
 // The calculation for DEC is the same as for ACC. Value is 0x08A on boot.
-// This is a 12-bit value, so we need to make sure the value is at or below 0xFFF.
 unsigned long AutoDriver::decCalc(float stepsPerSecPerSec)
 {
-  float temp = stepsPerSecPerSec * 0.06871948F;
-  if( (unsigned long) long(temp) > 0x00000FFF) return 0x00000FFF;
-  else return (unsigned long) long(temp);
+  float temp = stepsPerSecPerSec * 0.068719477F;
+  if (temp >= 4094.5F) return 0x00000FFE;
+  // Round to nearest so that accCalc(accParse(n)) == n.
+  unsigned long value = (temp > 0.0F) ? (unsigned long) (temp + 0.5F) : 0;
+  if (value < 1) return 1;
+  return value;
 }
 
 float AutoDriver::decParse(unsigned long stepsPerSecPerSec)
 {
-    return (float)(stepsPerSecPerSec & 0x00000FFF) * 15.258789F;
+  return (float)(stepsPerSecPerSec & 0x00000FFF) * 14.551915F;
 }
 
 // The value in the MAX_SPD register is [(steps/s)*(tick)]/(2^-18) where tick is 
@@ -87,7 +93,7 @@ float AutoDriver::FSParse(unsigned long stepsPerSec)
 
 // The value in the INT_SPD register is [(steps/s)*(tick)]/(2^-26) where tick is 
 //  250ns (datasheet value)- 0x408 on boot.
-// Multiply desired steps/s by 4.1943 to get an appropriate value for this register
+// Multiply desired steps/s by 16.777216 to get an appropriate value for this register
 // This is a 14-bit value, so we need to make sure the value is at or below 0x3FFF.
 unsigned long AutoDriver::intSpdCalc(float stepsPerSec)
 {
@@ -103,7 +109,7 @@ float AutoDriver::intSpdParse(unsigned long stepsPerSec)
 
 // When issuing RUN command, the 20-bit speed is [(steps/s)*(tick)]/(2^-28) where tick is 
 //  250ns (datasheet value).
-// Multiply desired steps/s by 67.106 to get an appropriate value for this register
+// Multiply desired steps/s by 67.108864 to get an appropriate value for this register
 // This is a 20-bit value, so we need to make sure the value is at or below 0xFFFFF.
 unsigned long AutoDriver::spdCalc(float stepsPerSec)
 {
@@ -154,9 +160,9 @@ long AutoDriver::paramHandler(byte param, unsigned long value)
     case SPEED:
       retVal = xferParam(0, 20);
       break; 
-    // ACC and DEC set the acceleration and deceleration rates. Set ACC to 0xFFF 
-    //  to get infinite acceleration/decelaeration- there is no way to get infinite
-    //  deceleration w/o infinite acceleration (except the HARD STOP command).
+    // ACC and DEC set the acceleration and deceleration rates. 0xFFF is a reserved
+    //  value and must not be used (datasheet 9.1.5 and 9.1.6); the valid range is
+    //  0x001 to 0xFFE. Use the HARD STOP command to stop with infinite deceleration.
     //  Cannot be written while motor is running. Both default to 0x08A on power up.
     // AccCalc() and DecCalc() functions exist to convert steps/s/s values into
     //  12-bit values for these two registers.
