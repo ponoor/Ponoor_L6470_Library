@@ -1,4 +1,4 @@
-#include <SparkFunAutoDriver.h>
+#include <Ponoor_L6470Library.h>
 #include <SPI.h>
 #include "SparkFunnotes.h"
 

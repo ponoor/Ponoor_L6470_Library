@@ -1,4 +1,4 @@
-#include <SparkFunAutoDriver.h>
+#include <Ponoor_L6470Library.h>
 #include <SPI.h>
 
 /* Test sketch that just gets and sets values on a L6470 AutoDriver
