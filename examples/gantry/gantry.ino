@@ -16,7 +16,7 @@
  * local, and you've found our code helpful, please buy us a round!
  * ****************************************************************************/
 
-#include <SparkFunAutoDriver.h>
+#include <Ponoor_L6470Library.h>
 #include <SPI.h>
 
 #define NUM_BOARDS 5
