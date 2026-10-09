@@ -121,8 +121,8 @@ unsigned long AutoDriver::getFullSpeedRaw()
 	return getParam(FS_SPD);
 }
 // Set the acceleration rate, in steps per second per second. This value is
-//  converted to a dSPIN friendly value. Any value larger than 29802 will
-//  disable acceleration, putting the chip in "infinite" acceleration mode.
+//  converted to a dSPIN friendly value. The valid range is 14.55 to 59590
+//  steps/s/s; values outside the range are clamped.
 void AutoDriver::setAcc(float stepsPerSecondPerSecond)
 {
   unsigned long integerAcc = accCalc(stepsPerSecondPerSecond);
@@ -155,7 +155,7 @@ void AutoDriver::setDecRaw(unsigned long integerDec)
 
 float AutoDriver::getDec()
 {
-  return accParse(getParam(DECEL));
+  return decParse(getParam(DECEL));
 }
 unsigned long AutoDriver::getDecRaw()
 {

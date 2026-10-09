@@ -3,21 +3,86 @@
 //commands.ino - Contains high-level command implementations- movement
 //   and configuration commands, for example.
 
+// Command assembly. The same functions are used by the immediate API and by
+//  the prepare*() methods, so that clamping and byte order stay identical.
+
+// Writes cmd followed by the low dataBytes bytes of value, most significant
+//  byte first (the dSPIN expects big-endian data).
+byte AutoDriver::buildData(byte cmd, unsigned long value, byte dataBytes, byte *tx)
+{
+  tx[0] = cmd;
+  for (byte i = 0; i < dataBytes; i++)
+  {
+    tx[1 + i] = (byte)(value >> ((dataBytes - 1 - i) * 8));
+  }
+  return 1 + dataBytes;
+}
+
+byte AutoDriver::buildRun(byte dir, unsigned long integerSpeed, byte *tx)
+{
+  if (integerSpeed > 0xFFFFF) integerSpeed = 0xFFFFF;
+  return buildData(CMD_RUN | dir, integerSpeed, 3, tx);
+}
+
+byte AutoDriver::buildMove(byte dir, unsigned long numSteps, byte *tx)
+{
+  if (numSteps > 0x3FFFFF) numSteps = 0x3FFFFF;
+  return buildData(CMD_MOVE | dir, numSteps, 3, tx);
+}
+
+// cmd is CMD_GOTO or CMD_GOTO_DIR | dir.
+byte AutoDriver::buildGoTo(byte cmd, long pos, byte *tx)
+{
+  if (pos > 0x3FFFFF) pos = 0x3FFFFF;
+  return buildData(cmd, (unsigned long)pos, 3, tx);
+}
+
+// Returns 0 for an unknown register. bitLen receives the register width.
+byte AutoDriver::buildSetParam(byte param, unsigned long value, byte *tx, byte *bitLen)
+{
+  *bitLen = paramBitLen(param);
+  if (*bitLen == 0) return 0;
+  return buildData(param | CMD_SET_PARAM, paramMask(param, value), (*bitLen + 7) / 8, tx);
+}
+
+byte AutoDriver::buildGetParam(byte param, byte *tx, byte *bitLen)
+{
+  *bitLen = paramBitLen(param);
+  if (*bitLen == 0) return 0;
+  return buildData(param | CMD_GET_PARAM, 0, (*bitLen + 7) / 8, tx);
+}
+
+// Sends a command and its data bytes without letting an interrupt in between.
+void AutoDriver::sendBytes(const byte *tx, byte len)
+{
+  uint32_t primask = _irqSave();
+  for (byte i = 0; i < len; i++)
+  {
+    SPIXfer(tx[i]);
+  }
+  _irqRestore(primask);
+}
+
 // Realize the "set parameter" function, to write to the various registers in
 //  the dSPIN chip.
 void AutoDriver::setParam(byte param, unsigned long value) 
 {
   param |= CMD_SET_PARAM;
+  uint32_t primask = _irqSave();
   SPIXfer((byte)param);
   paramHandler(param, value);
+  _irqRestore(primask);
 }
 
 // Realize the "get parameter" function, to read from the various registers in
 //  the dSPIN chip.
 long AutoDriver::getParam(byte param)
 {
+  uint32_t primask = _irqSave();
   SPIXfer(param | CMD_GET_PARAM);
-  return paramHandler(param, 0);
+  long retVal = paramHandler(param, 0);
+  _irqRestore(primask);
+  return retVal;
 }
 
 // Returns the content of the ABS_POS register, which is a signed 22-bit number
@@ -31,7 +96,7 @@ long AutoDriver::getPos()
   // Since ABS_POS is a 22-bit 2's comp value, we need to check bit 21 and, if
   //  it's set, set all the bits ABOVE 21 in order for the value to maintain
   //  its appropriate sign.
-  if (temp & 0x00200000) temp |= 0xffc00000;
+  if (temp & 0x00200000) temp |= ~0x003FFFFFL;
   return temp;
 }
 
@@ -51,7 +116,7 @@ long AutoDriver::getMark()
   // Since ABS_POS is a 22-bit 2's comp value, we need to check bit 21 and, if
   //  it's set, set all the bits ABOVE 21 in order for the value to maintain
   //  its appropriate sign.
-  if (temp & 0x00200000) temp |= 0xffC00000;
+  if (temp & 0x00200000) temp |= ~0x003FFFFFL;
   return temp;
 }
 
@@ -67,23 +132,9 @@ void AutoDriver::run(byte dir, float stepsPerSec)
   runRaw(dir, integerSpeed);
 }
 void AutoDriver::runRaw(byte dir, unsigned long integerSpeed) {
-  SPIXfer(CMD_RUN | dir);
-  if (integerSpeed > 0xFFFFF) integerSpeed = 0xFFFFF;
-  
-  // Now we need to push this value out to the dSPIN. The 32-bit value is
-  //  stored in memory in little-endian format, but the dSPIN expects a
-  //  big-endian output, so we need to reverse the byte-order of the
-  //  data as we're sending it out. Note that only 3 of the 4 bytes are
-  //  valid here.
-  
-  // We begin by pointing bytePointer at the first byte in integerSpeed.
-  byte* bytePointer = (byte*)&integerSpeed;
-  // Next, we'll iterate through a for loop, indexing across the bytes in
-  //  integerSpeed starting with byte 2 and ending with byte 0.
-  for (int8_t i = 2; i >= 0; i--)
-  {
-    SPIXfer(bytePointer[i]);
-  }
+  byte tx[4];
+  byte len = buildRun(dir, integerSpeed, tx);
+  sendBytes(tx, len);
 }
 
 // STEP_CLOCK puts the device in external step clocking mode. When active,
@@ -102,14 +153,9 @@ void AutoDriver::stepClock(byte dir)
 //  will run at MAX_SPEED. Stepping mode will adhere to FS_SPD value, as well.
 void AutoDriver::move(byte dir, unsigned long numSteps)
 {
-  SPIXfer(CMD_MOVE | dir);
-  if (numSteps > 0x3FFFFF) numSteps = 0x3FFFFF;
-  // See run() for an explanation of what's going on here.
-  byte* bytePointer = (byte*)&numSteps;
-  for (int8_t i = 2; i >= 0; i--)
-  {
-    SPIXfer(bytePointer[i]);
-  }
+  byte tx[4];
+  byte len = buildMove(dir, numSteps, tx);
+  sendBytes(tx, len);
 }
 
 // GOTO operates much like MOVE, except it produces absolute motion instead
@@ -117,27 +163,17 @@ void AutoDriver::move(byte dir, unsigned long numSteps)
 //  in the shortest possible fashion.
 void AutoDriver::goTo(long pos)
 {
-  SPIXfer(CMD_GOTO);
-  if (pos > 0x3FFFFF) pos = 0x3FFFFF;
-  // See run() for an explanation of what's going on here.
-  byte* bytePointer = (byte*)&pos;
-  for (int8_t i = 2; i >= 0; i--)
-  {
-    SPIXfer(bytePointer[i]);
-  }
+  byte tx[4];
+  byte len = buildGoTo(CMD_GOTO, pos, tx);
+  sendBytes(tx, len);
 }
 
 // Same as GOTO, but with user constrained rotational direction.
 void AutoDriver::goToDir(byte dir, long pos)
 {
-  SPIXfer(CMD_GOTO_DIR | dir);
-  if (pos > 0x3FFFFF) pos = 0x3FFFFF;
-  // See run() for an explanation of what's going on here.
-  byte* bytePointer = (byte*)&pos;
-  for (int8_t i = 2; i >= 0; i--)
-  {
-    SPIXfer(bytePointer[i]);
-  }
+  byte tx[4];
+  byte len = buildGoTo(CMD_GOTO_DIR | dir, pos, tx);
+  sendBytes(tx, len);
 }
 
 // GoUntil will set the motor running with direction dir (REV or
@@ -153,14 +189,10 @@ void AutoDriver::goUntil(byte action, byte dir, float stepsPerSec)
 }
 void AutoDriver::goUntilRaw(byte action, byte dir, unsigned long integerSpeed) {
   action = (action > 0) << 3;
-  SPIXfer(CMD_GO_UNTIL | action | dir);
-  if (integerSpeed > 0x3FFFFF) integerSpeed = 0x3FFFFF;
-  // See run() for an explanation of what's going on here.
-  byte* bytePointer = (byte*)&integerSpeed;
-  for (int8_t i = 2; i >= 0; i--)
-  {
-    SPIXfer(bytePointer[i]);
-  }
+  if (integerSpeed > 0xFFFFF) integerSpeed = 0xFFFFF;  // SPD is 20-bit; the upper 4 bits of byte 2 are don't care
+  byte tx[4];
+  byte len = buildData(CMD_GO_UNTIL | action | dir, integerSpeed, 3, tx);
+  sendBytes(tx, len);
 }
 // Similar in nature to GoUntil, ReleaseSW produces motion at the
 //  higher of two speeds: the value in MIN_SPEED or 5 steps/s.
@@ -253,15 +285,11 @@ void AutoDriver::hardHiZ()
 int AutoDriver::getStatus()
 {
   int temp = 0;
-#if defined(ARDUINO_ARCH_SAMD)
-  __disable_irq();
-#endif
+  uint32_t primask = _irqSave();
   byte* bytePointer = (byte*)&temp;
   SPIXfer(CMD_GET_STATUS);
   bytePointer[1] = SPIXfer(0);
   bytePointer[0] = SPIXfer(0);
-#if defined(ARDUINO_ARCH_SAMD)
-  __enable_irq();
-#endif
+  _irqRestore(primask);
   return temp;
 }
